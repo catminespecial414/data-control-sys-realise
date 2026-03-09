@@ -16,7 +16,7 @@
 - 控制继电器、LED和蜂鸣器。
 
 ### 4. Network
-- 提供MQTT和HTTP通信功能。
+- 提供HTTP通信功能。
 
 ### 5. Control
 - 实现自动灌溉逻辑。

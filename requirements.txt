@@ -1,5 +1,4 @@
 flask
-sqlite3
 paho-mqtt
 numpy
 scikit-learn
