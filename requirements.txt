@@ -1,3 +1,4 @@
+pymysql
 flask
 paho-mqtt
 numpy
