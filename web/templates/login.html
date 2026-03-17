@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<!--[if IE 8]>
+<html lang="en" class="ie8 no-js"> <![endif]-->
+<!--[if IE 9]>
+<html lang="en" class="ie9 no-js"> <![endif]-->
+<!--[if !IE]><!-->
+<html lang="zxx">
+<!--<![endif]-->
+<!-- Begin Head -->
+
+<head>
+    <title>SplashDash</title>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="author" content="">
+    <meta name="MobileOptimized" content="320">
+    <!--Start Style -->
+    <link rel="stylesheet" type="text/css" href="../static/css/fonts.css">
+    <link rel="stylesheet" type="text/css" href="../static/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="../static/css/auth.css">
+</head>
+
+<body>
+<div class="ad-auth-wrapper">
+    <div class="ad-auth-box">
+        <div class="row align-items-center">
+            <div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12">
+                <div class="ad-auth-img">
+                    <img src="../static/picture/auth-img1.png" alt="">
+                </div>
+            </div>
+            <div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12">
+                <div class="ad-auth-content">
+                    <form method="post" action="/login">
+
+                        <h2><span class="primary">农田检测系统</span></h2>
+                        <p>请输入账号信息登录</p>
+
+                        <div class="ad-auth-form">
+
+                            <!-- 用户ID -->
+                            <div class="ad-auth-feilds mb-30">
+                                <input type="text" name="user_id" placeholder="User ID" class="ad-input" required>
+                                <!-- TODO: user_id -->
+                            </div>
+
+                            <!-- 密码 -->
+                            <div class="ad-auth-feilds">
+                                <input type="password" name="password" placeholder="Password" class="ad-input" required>
+                                <!-- TODO: password -->
+                            </div>
+
+                        </div>
+
+                        <!-- 登录按钮 -->
+                        <div class="ad-auth-btn">
+                            <button type="submit" class="ad-btn ad-login-member">
+                                登录
+                            </button>
+                        </div>
+
+                        <!-- TODO: Flask返回错误信息 -->
+                        {% if error %}
+                        <p style="color:red; margin-top:10px;">
+                            {{ error }}
+                        </p>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+
+</html>

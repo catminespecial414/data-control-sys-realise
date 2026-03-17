@@ -55,31 +55,6 @@
                                 </span>
                             <span class="count-notification"></span>
                         </a>
-                        <div class="recent-notification">
-                            <div class="drop-down-header">
-                                <h4>All Notification</h4>
-                                <p>You have 6 new notifications</p>
-                            </div>
-                            <ul>
-                                <li>
-                                    <a href="javascript:void(0);">
-                                        <h5><i class="fas fa-exclamation-circle mr-2"></i>Storage Full</h5>
-                                        <p>Lorem ipsum dolor sit amet, consectetuer.</p>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="javascript:void(0);">
-                                        <h5><i class="far fa-envelope mr-2"></i>New Membership</h5>
-                                        <p>Lorem ipsum dolor sit amet, consectetuer.</p>
-                                    </a>
-                                </li>
-                            </ul>
-                            <div class="drop-down-footer">
-                                <a href="javascript:void(0);" class="btn sm-btn">
-                                    View All
-                                </a>
-                            </div>
-                        </div>
                     </div>
                     <div class="user-info-wrapper header-links">
                         <a href="javascript:void(0);" class="user-info">
@@ -101,7 +76,7 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="login.html">
+                                    <a href="logout">
                                         <i class="fas fa-sign-out-alt"></i> 登出
                                     </a>
                                 </li>
@@ -117,23 +92,21 @@
         <div class="side-menu-wrap">
             <ul class="main-menu">
                 <li>
-                    <a href="orders.html">
+                    <a href="/dashboard">
                             <span class="icon-menu feather-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24" fill="none"
                                      stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                     stroke-linejoin="round" class="feather feather-truck"><rect x="1" y="3" width="15"
-                                                                                                 height="13"></rect><polygon
-                                        points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5"
-                                                                                                    r="2.5"></circle><circle
-                                        cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                                     stroke-linejoin="round" class="feather feather-home"><path
+                                        d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline
+                                        points="9 22 9 12 15 12 15 22"></polyline></svg>
                             </span>
                         <span class="menu-text">
-                                Orders
+                                Dashboard
                             </span>
                     </a>
                 </li>
                 <li>
-                    <a href="chart.html">
+                    <a href="chart.html" class="active">
                             <span class="icon-menu feather-icon">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24" fill="none"
                                      stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -152,70 +125,70 @@
     </aside>
     <!-- Container Start -->
     <div class="page-wrapper">
-       <div class="main-content">
-                <!-- Page Title Start -->
-                <div class="row">
-                    <div class="colxl-12 col-lg-12 col-md-12 col-sm-12 col-12">
-                        <div class="page-title-wrapper">
-                            <div class="page-title-box">
-                                <h4 class="page-title bold">Charts</h4>
-                            </div>
-                            <div class="breadcrumb-list">
-                                <ul>
-                                    <li class="breadcrumb-link">
-                                        <a href="javascript:void(0);"><i class="fas fa-home mr-2"></i>Home</a>
-                                    </li>
-                                    <li class="breadcrumb-link active">Chart</li>
-                                </ul>
+        <div class="main-content">
+            <!-- Page Title Start -->
+            <div class="row">
+                <div class="colxl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+                    <div class="page-title-wrapper">
+                        <div class="page-title-box">
+                            <h4 class="page-title bold">Charts</h4>
+                        </div>
+                        <div class="breadcrumb-list">
+                            <ul>
+                                <li class="breadcrumb-link">
+                                    <a href="javascript:void(0);"><i class="fas fa-home mr-2"></i>Home</a>
+                                </li>
+                                <li class="breadcrumb-link active">Chart</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Chart Start -->
+            <div class="row">
+                <div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12">
+                    <!-- Basic Area Chart -->
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h4>农田状态数据分析</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-holder">
+                                <div id="chartA"></div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <!-- Chart Start -->
-                <div class="row">
-                    <div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12">
-                        <!-- Basic Area Chart -->
-                        <div class="card chart-card">
-                            <div class="card-header">
-                                <h4>农田状态数据分析</h4>
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-holder">
-                                    <div id="chartA"></div>
-                                </div>
-                            </div>
+                <div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12">
+                    <!-- Area Spaline Chart -->
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h4>害虫数据分析</h4>
                         </div>
-                    </div>
-                    <div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12">
-                        <!-- Area Spaline Chart -->
-                        <div class="card chart-card">
-                            <div class="card-header">
-                                <h4>害虫数据分析</h4>
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-holder">
-                                    <div id="chartB"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-<!--                    TODO:温湿度表-->
-                    <div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12">
-                        <div class="card chart-card">
-                            <div class="card-header">
-                                <h4>温湿度折线图</h4>
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-holder">
-                                    <div id="chartT"></div>
-                                </div>
+                        <div class="card-body">
+                            <div class="chart-holder">
+                                <div id="chartB"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            <div class="row">
+                <!--                    TODO:温湿度表-->
+                <div class="col-xl-6 col-lg-6 col-md-12 col-sm-12 col-12">
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h4>温湿度折线图</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-holder">
+                                <div id="chartT"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -362,212 +335,126 @@
 <script src="../static/js/custom.js"></script>
 <!--TODO:加载温湿度数据(模拟)-->
 <script>
-var tempData = []
-var humData = []
-var timeData = []
-var options = {
-    chart: {
-        type: 'line',
-        height: 350
-    },
+    // ================== 数据容器 ==================
+    var tempData = []
+    var humData = []
+    var soilData = []
+    var lightData = []
+    var phData = []
 
-    series: [
-        {
-            name: "Temperature",
-            data: tempData
-        },
-        {
-            name: "Humidity",
-            data: humData
-        }
-    ],
+    var aphidData = []
+    var armywormData = []
+    var beetleData = []
 
-    xaxis: {
-        categories: timeData
-    },
+    var timeData = []
 
-    stroke: {
-        curve: 'smooth'
-    }
-}
-var chart = new ApexCharts(
-    document.querySelector("#chartT"),
-    options
-)
-
-chart.render()
-
-</script>
-<script>
-
-setInterval(function(){
-
-fetch("/chart")
-.then(res => res.json())
-.then(data => {
-
-    var now = new Date().toLocaleTimeString()
-
-    tempData.push(data.temperature)
-    humData.push(data.humidity)
-    timeData.push(now)
-
-    if(tempData.length > 20){
-        tempData.shift()
-        humData.shift()
-        timeData.shift()
-    }
-
-    chart.updateOptions({
-        xaxis: {
-            categories: timeData
-        }
+    // ================== 温湿度图 ==================
+    var chart = new ApexCharts(document.querySelector("#chartT"), {
+        chart: { type: 'line', height: 350 },
+        series: [
+            { name: "Temperature", data: tempData },
+            { name: "Humidity", data: humData }
+        ],
+        xaxis: { categories: timeData },
+        stroke: { curve: 'smooth' }
     })
+    chart.render()
 
-    chart.updateSeries([
-        {
-            name:"Temperature",
-            data: tempData
-        },
-        {
-            name:"Humidity",
-            data: humData
-        }
-    ])
+    // ================== 农田图 ==================
+    var farmChart = new ApexCharts(document.querySelector("#chartA"), {
+        chart: { type: "area", height: 350 },
+        series: [
+            { name: "Soil Moisture", data: soilData },
+            { name: "Light", data: lightData },
+            { name: "PH", data: phData }
+        ],
+        xaxis: { categories: timeData },
+        stroke: { curve: 'smooth' }
+    })
+    farmChart.render()
 
-})
-
-},2000)
-
-</script>
-<!--TODO:加载温湿度数据(模拟)-->
-
-<!--TODO:加载农田和害虫分析图-->
-<script>
-
-var farmChart = new ApexCharts(
-document.querySelector("#chartA"),
-{
-    chart:{
-        type:"area",
-        height:350
-    },
-    series:[
-        { name:"Soil Moisture", data:[] },
-        { name:"Light", data:[] },
-        { name:"PH", data:[] }
-    ],
-    xaxis:{
-        categories:[]
-    },
-    stroke:{
-        curve:'smooth'
-    }
-})
-
-farmChart.render()
-
-</script>
-<script>
-
-var pestChart = new ApexCharts(
-document.querySelector("#chartB"),
-{
-    chart:{
-        type:"area",
-        height:350
-    },
-    series:[
-        { name:"Aphid", data:[] },
-        { name:"Armyworm", data:[] },
-        { name:"Beetle", data:[] }
-    ],
-    xaxis:{
-        categories:[]
-    },
-    stroke:{
-        curve:'smooth'
-    }
-})
-
-pestChart.render()
-
-</script>
-<!--AJAX-->
-<script>
-
-var timeData = []
-var soilData=[]
-var lightData=[]
-var phData=[]
-
-var aphidData=[]
-var armywormData=[]
-var beetleData=[]
+    // ================== 害虫图 ==================
+    var pestChart = new ApexCharts(document.querySelector("#chartB"), {
+        chart: { type: "area", height: 350 },
+        series: [
+            { name: "Aphid", data: aphidData },
+            { name: "Armyworm", data: armywormData },
+            { name: "Beetle", data: beetleData }
+        ],
+        xaxis: { categories: timeData },
+        stroke: { curve: 'smooth' }
+    })
+    pestChart.render()
 
 
-setInterval(function(){
+    // ================== 核心：统一更新 ==================
+    setInterval(function(){
 
-var now = new Date().toLocaleTimeString()
-timeData.push(now)
+        fetch("/chart")
+        .then(res => res.json())
+        .then(data => {
 
-if(timeData.length>20){
-    timeData.shift()
-    soilData.shift()
-    lightData.shift()
-    phData.shift()
+            var now = new Date().toLocaleTimeString()
 
-    aphidData.shift()
-    armywormData.shift()
-    beetleData.shift()
-}
+            // 时间
+            timeData.push(now)
 
+            // 温湿度
+            tempData.push(data.temperature)
+            humData.push(data.humidity)
 
-// 农田数据
-fetch("/farm")
-.then(res=>res.json())
-.then(data=>{
+            // 农田
+            soilData.push(data.soil)
+            lightData.push(data.light)
+            phData.push(data.ph)
 
-soilData.push(data.soil)
-lightData.push(data.light)
-phData.push(data.ph)
+            // 害虫
+            aphidData.push(data.aphid)
+            armywormData.push(data.armyworm)
+            beetleData.push(data.beetle)
 
-farmChart.updateOptions({
-    xaxis:{categories:timeData}
-})
+            // 限制长度
+            if(timeData.length > 20){
+                timeData.shift()
 
-farmChart.updateSeries([
-    {name:"Soil Moisture",data:soilData},
-    {name:"Light",data:lightData},
-    {name:"PH",data:phData}
-])
+                tempData.shift()
+                humData.shift()
 
-})
+                soilData.shift()
+                lightData.shift()
+                phData.shift()
 
+                aphidData.shift()
+                armywormData.shift()
+                beetleData.shift()
+            }
 
-// 害虫数据
-fetch("/pest")
-.then(res=>res.json())
-.then(data=>{
+            // 更新温湿度图
+            chart.updateOptions({ xaxis: { categories: timeData } })
+            chart.updateSeries([
+                { name: "Temperature", data: tempData },
+                { name: "Humidity", data: humData }
+            ])
 
-aphidData.push(data.aphid)
-armywormData.push(data.armyworm)
-beetleData.push(data.beetle)
+            // 更新农田图
+            farmChart.updateOptions({ xaxis: { categories: timeData } })
+            farmChart.updateSeries([
+                { name: "Soil Moisture", data: soilData },
+                { name: "Light", data: lightData },
+                { name: "PH", data: phData }
+            ])
 
-pestChart.updateOptions({
-    xaxis:{categories:timeData}
-})
+            // 更新害虫图
+            pestChart.updateOptions({ xaxis: { categories: timeData } })
+            pestChart.updateSeries([
+                { name: "Aphid", data: aphidData },
+                { name: "Armyworm", data: armywormData },
+                { name: "Beetle", data: beetleData }
+            ])
 
-pestChart.updateSeries([
-    {name:"Aphid",data:aphidData},
-    {name:"Armyworm",data:armywormData},
-    {name:"Beetle",data:beetleData}
-])
-
-})
-
-},3000)
-
+        })
+<!--五秒一次-->
+    }, 5000)
 </script>
 <!--TODO:加载农田和害虫分析图-->
 </body>
