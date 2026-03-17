@@ -10,8 +10,8 @@ def execute(sql, params=None):
         cursor.execute(sql, params)
     else:
         cursor.execute(sql)
+    cursor.commit()
 
-    db.commit()
     return cursor
 
 
