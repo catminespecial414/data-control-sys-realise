@@ -1,102 +1,71 @@
 # -*- coding: utf-8 -*-
-#!/usr/bin/env python
 import RPi.GPIO as GPIO
 import numpy as np
 import time
 
-DHTPIN = 17  # 引脚号17
+class DHT11:
+    def __init__(self, pin=17):  # 根据你给的代码，引脚是17
+        self.pin = pin
+        GPIO.setmode(GPIO.BCM)
 
-GPIO.setmode(GPIO.BCM)  # 以BCM编码格式
+    def read(self):
+        """读取并返回温湿度字典"""
+        # 1. 发送开始信号
+        GPIO.setup(self.pin, GPIO.OUT)
+        GPIO.output(self.pin, GPIO.LOW)
+        time.sleep(0.02)
+        GPIO.output(self.pin, GPIO.HIGH)
+        
+        GPIO.setup(self.pin, GPIO.IN)
 
-
-def read_dht11_dat():
-    GPIO.setup(DHTPIN, GPIO.OUT)
-    GPIO.output(DHTPIN, GPIO.LOW)
-    # 给信号提示传感器开始工作,并保持低电平18ms以上
-    time.sleep(0.02)  # 这里保持20ms
-    GPIO.output(DHTPIN, GPIO.HIGH)  # 然后输出高电平
-
-    GPIO.setup(DHTPIN, GPIO.IN)
-    # 发送完开始信号后得把输出模式换成输入模式，不然信号线上电平始终被拉高
-
-    while GPIO.input(DHTPIN) == GPIO.LOW:
-        continue
-    # DHT11发出应答信号，输出 80 微秒的低电平
-
-    while GPIO.input(DHTPIN) == GPIO.HIGH:
-        continue
-    # 紧接着输出 80 微秒的高电平通知外设准备接收数据
-
-    # 开始接收数据
-    j = 0  # 计数器
-    data = []  # 收到的二进制数据
-    kk = []  # 存放每次高电平结束后的k值的列表
-    while j < 40:
-        k = 0
-        while GPIO.input(DHTPIN) == GPIO.LOW:  # 先是 50 微秒的低电平
+        # 2. 等待响应
+        timeout = 0
+        while GPIO.input(self.pin) == GPIO.LOW:
+            timeout += 1
+            if timeout > 1000: return {"error": "Sensor timeout"}
             continue
 
-        while GPIO.input(DHTPIN) == GPIO.HIGH:  # 接着是26-28微秒的高电平，或者 70 微秒的高电平
-            k += 1
-            if k > 100:
-                break
-        kk.append(k)
-        if k < 8:  # 26-28 微秒时高电平时通常k等于5或6
-            data.append(0)  # 在数据列表后面添加一位新的二进制数据“0”
-        else:  # 70 微秒时高电平时通常k等于17或18
-            data.append(1)  # 在数据列表后面添加一位新的二进制数据“1”
+        while GPIO.input(self.pin) == GPIO.HIGH:
+            continue
 
-        j += 1
+        # 3. 接收 40 位数据
+        j = 0
+        data = []
+        while j < 40:
+            k = 0
+            while GPIO.input(self.pin) == GPIO.LOW:
+                continue
+            while GPIO.input(self.pin) == GPIO.HIGH:
+                k += 1
+                if k > 100: break
+            
+            if k < 8:
+                data.append(0)
+            else:
+                data.append(1)
+            j += 1
 
-    print("sensor is working.")
-    print
-    '初始数据高低电平:\n', data  # 输出初始数据高低电平
-    print
-    '参数k的列表内容：\n', kk  # 输出高电平结束后的k值
+        # 4. 数据解析（使用你原来的 numpy 逻辑）
+        m = np.logspace(7, 0, 8, base=2, dtype=int)
+        data_array = np.array(data)
+        
+        try:
+            humidity = m.dot(data_array[0:8])
+            humidity_point = m.dot(data_array[8:16])
+            temperature = m.dot(data_array[16:24])
+            temperature_point = m.dot(data_array[24:32])
+            check = m.dot(data_array[32:40])
 
-    m = np.logspace(7, 0, 8, base=2, dtype=int)  # logspace()函数用于创建一个于等比数列的数组
-    # 即[128 64 32 16 8 4 2 1]，8位二进制数各位的权值
-    data_array = np.array(data)  # 将data列表转换为数组
+            if check == (humidity + humidity_point + temperature + temperature_point):
+                return {
+                    "humidity": humidity,
+                    "temperature": temperature,
+                    "status": "success"
+                }
+            else:
+                return {"error": "Checksum failed", "status": "error"}
+        except Exception as e:
+            return {"error": str(e), "status": "error"}
 
-    # dot()函数对于两个一维的数组，计算的是这两个数组对应下标元素的乘积和(数学上称之为内积)
-    humidity = m.dot(data_array[0:8])  # 用前8位二进制数据计算湿度的十进制值
-    humidity_point = m.dot(data_array[8:16])
-    temperature = m.dot(data_array[16:24])
-    temperature_point = m.dot(data_array[24:32])
-    check = m.dot(data_array[32:40])
-
-    print
-    humidity, humidity_point, temperature, temperature_point, check
-
-    tmp = humidity + humidity_point + temperature + temperature_point
-    # 十进制的数据相加
-
-    if check == tmp:  # 数据校验，相等则输出
-        return humidity, temperature
-    else:  # 错误输出错误信息
-        return False
-
-
-def main():
-    print
-    "Raspberry Pi DHT11 Temperature test program\n"
-    time.sleep(1)  # 通电后前一秒状态不稳定，时延一秒
-    while True:
-        result = read_dht11_dat()
-        if result:
-            humidity, temperature = result
-            print
-            "humidity: %s %%,  Temperature: %s  ℃" % \
-            (humidity, temperature)
-            print
-            '\n'
-            time.sleep(1)
-
-        if result == False:
-            print
-            "Data are wrong,skip\n"
-            time.sleep(1)
-
-
-def destroy():
-    GPIO.cleanup()
+    def cleanup(self):
+        GPIO.cleanup()
