@@ -27,4 +27,4 @@ def setting():
 
 
 # 导入 API
-from . import dth11_flask
+from . import server

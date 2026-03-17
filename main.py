@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # main.py
 from network import app
-from database import init_db
+from database.connect import init_db
 
 if __name__ == "__main__":
     # # 初始化数据库
