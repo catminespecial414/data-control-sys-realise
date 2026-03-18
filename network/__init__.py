@@ -16,8 +16,11 @@ app.secret_key= '6666'
 global username
 username = 'admin'
 
-# 摄像头（全局变量）
-camera = cv2.VideoCapture(0)
+camera = cv2.VideoCapture(0, cv2.CAP_V4L2)
+
+# 不要设置 FOURCC！
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 #登录页
 
@@ -49,8 +52,6 @@ def index():
 
     # TODO: 从数据库查设备状态
     devices = select_device()
-    #TODO: 加载视频流
-    vedio = select_device()
 
     return render_template("index.html",
                            farm_score=farm_score,
@@ -86,26 +87,28 @@ def set_user():
 
     return redirect(url_for('index'))
 #TODO:加载摄像头
-# 视频流生成器
 def gen_frames():
     while True:
         success, frame = camera.read()
+
         if not success:
-            continue  # ❗不要 break，否则流直接断
-        else:
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
+            print("读取失败")
+            continue
 
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        ret, buffer = cv2.imencode('.jpg', frame)
+        if not ret:
+            print("编码失败")
+            continue
 
+        frame = buffer.tobytes()
 
-# 视频路由
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
 @app.route('/video_feed')
 def video_feed():
     return Response(gen_frames(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
-
 
 # 导入 API
 from . import server
