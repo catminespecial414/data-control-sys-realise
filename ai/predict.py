@@ -42,20 +42,21 @@ class Predict:
         
         found_pests = []
         
-        # 3. 解析结果并在图片上实时标注（用于演示查看）
+        # 3. 解析结果并在图片上实时标注
         if 'result' in result:
             items = result['result']
+            print("--- 百度 AI 眼中的画面 ---")
             for i, item in enumerate(items):
                 name = item.get('keyword')
-                # 检查是否在目标害虫名单中
+                score = item.get('score')
+                # 不管是不是害虫，全部打印出来看一眼
+                print(f"标签: {name} | 置信度: {score}") 
+                
                 if name in self.target_pests:
                     found_pests.append(name)
-                    # 在画面上画出提示文字
-                    cv2.putText(frame, f"Detected: {name}", (20, 40 + i*30), 
+                    cv2.putText(frame, f"Det: {name}", (20, 40 + i*30), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
-            
-            if found_pests:
-                print(f"🔍 识别到目标: {found_pests}")
+            print("-------------------------")
         
         # 4. 无论是否识别到，都保存最后一次的“证据图”供浏览器查看
         save_path = os.path.join(os.path.dirname(__file__), "../static/last_ai.jpg")
