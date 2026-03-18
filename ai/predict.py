@@ -1,80 +1,94 @@
 # -*- coding: utf-8 -*-
 import os
 import cv2
+import time
+import random
 from aip import AipImageClassify
 
 class Predict:
     def __init__(self):
-        # 百度 API 凭证
+        # 百度 API 凭证 (请确保你的账户有通用物体识别权限)
         self.APP_ID = '7521003'
         self.API_KEY = '91SgkOuo9AU1D6lRmCjX9mtL'
         self.SECRET_KEY = 'dYa8S0oFYY19M8hF1TSzxUP35AOJsDGj'
         self.client = AipImageClassify(self.APP_ID, self.API_KEY, self.SECRET_KEY)
         
-        # 目标过滤词（可以根据百度返回的 keyword 自行添加）
-        self.target_pests = ["瓢虫", "螳螂", "天牛", "蚜虫", "甲虫"]
+        # 目标过滤词：百度返回结果中包含这些词时会被记录
+        self.target_pests = ["瓢虫", "螳螂", "天牛", "蚜虫", "甲虫", "昆虫"]
 
     def analyze(self, frame=None):
         """
-        识别逻辑：支持传入外部 frame 或 自动抓拍
+        核心识别逻辑：
+        1. 优先尝试从硬件抓拍真实照片
+        2. 如果硬件忙碌或报错，自动切换到模拟模式保证系统不崩溃
         """
-        # --- 重点修改开始 ---
+        # --- 步骤 1: 获取画面 (真实抓拍) ---
         if frame is None:
+            cap = None
             try:
-                # 尝试用 V4L2 后端打开，增加稳定性
-                cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-                # 稍微等待硬件响应
-                import time
-                time.sleep(0.5) 
+                # 兼容性写法：只传 0 避免版本报错
+                cap = cv2.VideoCapture(0)
                 
-                # 兼容性设置
+                # 给硬件一点启动时间 (1秒最稳)
+                time.sleep(1) 
+                
+                # 强制设置格式，解决 Pixel format unsupported 报错
                 cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
-                ret, frame = cap.read()
-                cap.release() # 确保读取完立刻释放
+                cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
                 
-                if not ret:
-                    raise Exception("Capture failed")
-            except Exception as e:
-                print(f"⚠️ 摄像头抓拍失败: {e}，启用演示模拟模式")
-                # 演示专用：如果相机坏了，从你的 target_pests 里随机抓几个
-                import random
-                mock_pests = random.sample(self.target_pests, random.randint(1, 2))
-                return mock_pests 
-        # --- 重点修改结束 ---
+                ret, frame = cap.read()
+                
+                if not ret or frame is None:
+                    raise Exception("无法从摄像头读取画面")
+                
+                print("✅ 真实抓拍成功！正在调用百度 AI...")
 
-        # 1. 转换图片格式供百度 API 使用
+            except Exception as e:
+                # --- 核心保底逻辑：如果上面失败了，这里给“假”数据 ---
+                print(f"⚠️ 真实抓拍失败 ({e})，正在使用模拟数据进行演示...")
+                # 模拟识别出 1-2 种害虫
+                mock_results = random.sample(self.target_pests, random.randint(1, 2))
+                return mock_results
+            
+            finally:
+                # 无论成功失败，只要开了就必须释放资源
+                if cap is not None:
+                    cap.release()
+
+        # --- 步骤 2: 调用百度 AI 进行真实识别 ---
         try:
+            # 编码图片
             _, img_encode = cv2.imencode('.jpg', frame)
             img_data = img_encode.tobytes()
 
-            # 2. 调用百度通用物体识别接口
+            # 调用通用物体识别接口
             result = self.client.advancedGeneral(img_data)
-        except Exception as e:
-            print(f"❌ API 调用异常: {e}")
-            # 如果 API 挂了，也随机返回一个，保证图表不空
-            return ["瓢虫"] 
-        
-        found_pests = []
-        
-        # 3. 解析结果
-        if 'result' in result:
-            items = result['result']
-            print("--- 百度 AI 眼中的画面 ---")
-            for i, item in enumerate(items):
-                name = item.get('keyword')
-                score = item.get('score')
-                print(f"标签: {name} | 置信度: {score}") 
-                
-                # 这里的 name 是中文，百度返回的通常也是中文
-                if any(p in name for p in self.target_pests):
-                    found_pests.append(name)
-                    cv2.putText(frame, f"Det: {name}", (20, 40 + i*30), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
-            print("-------------------------")
-        
-        # 4. 保存最后一次的“证据图”
-        # 确保路径正确，建议用绝对路径或相对于项目根目录的路径
-        save_path = os.path.join(os.path.dirname(__file__), "../static/last_ai.jpg")
-        cv2.imwrite(save_path, frame)
             
-        return found_pests
+            found_pests = []
+            if 'result' in result:
+                items = result['result']
+                print("--- [真实 AI 识别结果] ---")
+                for i, item in enumerate(items):
+                    name = item.get('keyword')
+                    score = item.get('score')
+                    print(f"标签: {name} | 置信度: {score:.2f}") 
+                    
+                    # 匹配关键词
+                    if any(p in name for p in self.target_pests):
+                        found_pests.append(name)
+                        # 在保存的图片上画出检测文字
+                        cv2.putText(frame, f"Det: {name}", (20, 50 + i*40), 
+                                    cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+                print("-------------------------")
+            
+            # 保存“证据图”供网页 static 访问
+            save_path = os.path.join(os.path.dirname(__file__), "../static/last_ai.jpg")
+            cv2.imwrite(save_path, frame)
+            
+            # 如果 AI 一个都没认出来，为了演示效果，我们也给个默认值
+            return found_pests if found_pests else ["未发现害虫"]
+
+        except Exception as e:
+            print(f"❌ 百度 API 调用失败: {e}")
+            return ["API 连接超时"]
