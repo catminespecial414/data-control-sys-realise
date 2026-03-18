@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# from sensors import SensorManager
+from sensors import SensorManager
 from ai import Predict
 from database.connect import insert_env_data, select_env_data
 from . import app
