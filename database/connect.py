@@ -5,7 +5,7 @@ from datetime import datetime
 def init_db():
     global con
     con = Connection(
-        host='192.168.88.226',
+        host='10.33.134.226',
         port=3306,
         user='farm',
         database="farm_iot",
