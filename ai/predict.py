@@ -1,6 +1,6 @@
 class Predict:
     def __init__(self):
-        # ... (之前的初始化代码保持不变)
+        
         self.APP_ID = '7521003'
         self.API_KEY = '91SgkOuo9AU1D6lRmCjX9mtL'
         self.SECRET_KEY = 'dYa8S0oFYY19M8hF1TSzxUP35AOJsDGj'
@@ -28,8 +28,7 @@ class Predict:
         result = self.client.advancedGeneral(img_data)
         all_keywords = [item['keyword'] for item in result.get('result', [])]
 
-        # --- 核心过滤逻辑 ---
-        # 只有当识别到的物体在我们的白名单里时，才保留它
+       
         found_pests = [pest for pest in all_keywords if pest in self.target_pests]
         
         if found_pests:
