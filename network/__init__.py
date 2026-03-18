@@ -3,6 +3,7 @@
 # 网络通信模块初始化
 from flask import Flask, render_template, session, Response
 import cv2
+from flask import request, redirect, url_for
 
 from database.connect import select_user, select_device, alter_user
 
@@ -14,8 +15,12 @@ app = Flask(
 app.secret_key= '6666'
 global username
 username = 'admin'
+
+# 摄像头（全局变量）
+camera = cv2.VideoCapture(0)
+
 #登录页
-from flask import request, render_template, redirect, url_for
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -81,13 +86,12 @@ def set_user():
 
     return redirect(url_for('index'))
 #TODO:加载摄像头
-camera = cv2.VideoCapture(0)
-
+# 视频流生成器
 def gen_frames():
     while True:
         success, frame = camera.read()
         if not success:
-            break
+            continue  # ❗不要 break，否则流直接断
         else:
             ret, buffer = cv2.imencode('.jpg', frame)
             frame = buffer.tobytes()
@@ -95,6 +99,8 @@ def gen_frames():
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
+
+# 视频路由
 @app.route('/video_feed')
 def video_feed():
     return Response(gen_frames(),
