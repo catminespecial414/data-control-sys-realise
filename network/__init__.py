@@ -19,8 +19,8 @@ username = 'admin'
 camera = cv2.VideoCapture(0)
 
 # 不要设置 FOURCC！
-camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, 400)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 400)
 
 #登录页
 

@@ -12,6 +12,7 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",    # 局域网可访问
         port=5000,
-        debug=True,         # 开发调试模式
-        use_reloader=False
+        debug=False,         # 开发调试模式
+        use_reloader=False,
+        threaded = False
     )
