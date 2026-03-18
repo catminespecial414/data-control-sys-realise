@@ -18,12 +18,7 @@ username = 'admin'
 
 camera = cv2.VideoCapture(0)
 
-# 不要设置 FOURCC！
-camera.set(cv2.CAP_PROP_FRAME_WIDTH, 400)
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 400)
-
 #登录页
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -90,17 +85,19 @@ def set_user():
 def gen_frames():
     while True:
         success, frame = camera.read()
+        print("read:", success)
 
         if not success:
-            print("读取失败")
             continue
 
         ret, buffer = cv2.imencode('.jpg', frame)
+        print("encode:", ret)
+
         if not ret:
-            print("编码失败")
             continue
 
         frame = buffer.tobytes()
+        print("yielding frame")
 
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
