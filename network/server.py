@@ -17,9 +17,10 @@ def write_all_data():
     light = random.randint(200, 800)
     ph = round(random.uniform(5.5, 7.5), 2)
     pests = ai_engine.analyze()
-    aphid = pests.count("aphid")       # 蚜虫
-    armyworm = pests.count("armyworm") # 粘虫
-    beetle = pests.count("beetle")     # 甲虫
+    aphid = pests.count("蚜虫")
+    armyworm = pests.count("粘虫")
+    beetle = pests.count("瓢虫") + pests.count("天牛") + pests.count("甲虫")
+    
 
     # temperature = round(random.uniform(20, 30), 2)
     # humidity = round(random.uniform(40, 70), 2)
