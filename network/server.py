@@ -10,7 +10,7 @@ sensor_manager = SensorManager()
 ai_engine = Predict()
 
 def write_all_data():
-    sensor_data = sensor_manager.get_data()
+    sensor_data = sensor_manager.get_all_data()
     temperature = sensor_data.get('temperature', 0)
     humidity = sensor_data.get('humidity', 0)
     soil = round(random.uniform(30, 70), 2)
