@@ -1,4 +1,28 @@
 # backend/main.py
+from flask import Flask, jsonify
+from ai import Predict
+from sensors import SensorManager
+from .config import BAIDU_AI_CONF
+
+app = Flask(__name__)
+
+# 初始化模块
+ai_engine = Predict()  # 确保 predict.py 里引用了 config.py 的配置
+sensor_engine = SensorManager()
+
+@app.route('/api/all_data', methods=['GET'])
+def get_data():
+    """获取传感器和AI的综合数据"""
+    env = sensor_engine.get_all_data()
+    pests = ai_engine.analyze()
+    
+    return jsonify({
+        "temperature": env.get("temperature"),
+        "humidity": env.get("humidity"),
+        "pests": pests,
+        "is_safe": len(pests) == 0,
+        "time": env.get("status") # 或者加上当前系统时间
+    })
 
 if __name__ == '__main__':
-    print("Backend 主程序启动...")
+    app.run(host='0.0.0.0', port=5000)
