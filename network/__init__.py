@@ -17,7 +17,6 @@ global username
 username = 'admin'
 
 camera = cv2.VideoCapture(0)
-camera.set(cv2.CAP_PROP_BACKEND, cv2.CAP_V4L2)
 
 # 不要设置 FOURCC！
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
