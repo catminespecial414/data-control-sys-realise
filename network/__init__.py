@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 # network/__init__.py
 # 网络通信模块初始化
-from flask import Flask, render_template, session
+from flask import Flask, render_template, session, Response
+import cv2
 
 from database.connect import select_user, select_device, alter_user
 
@@ -43,6 +44,8 @@ def index():
 
     # TODO: 从数据库查设备状态
     devices = select_device()
+    #TODO: 加载视频流
+    vedio = select_device()
 
     return render_template("index.html",
                            farm_score=farm_score,
@@ -77,6 +80,25 @@ def set_user():
         session['user'] = select_user(user_id)
 
     return redirect(url_for('index'))
+#TODO:加载摄像头
+camera = cv2.VideoCapture(0)
+
+def gen_frames():
+    while True:
+        success, frame = camera.read()
+        if not success:
+            break
+        else:
+            ret, buffer = cv2.imencode('.jpg', frame)
+            frame = buffer.tobytes()
+
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(gen_frames(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 # 导入 API
