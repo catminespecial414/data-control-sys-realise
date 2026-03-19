@@ -2,7 +2,6 @@
 import RPi.GPIO as GPIO
 import numpy as np
 import time
-import os
 
 class DHT11:
     def __init__(self, pin=17):
@@ -11,74 +10,50 @@ class DHT11:
         GPIO.setwarnings(False)
 
     def read(self):
-        """读取并返回温湿度字典 (针对高负载环境优化)"""
-        # 尝试提升进程优先级（需要 sudo）
-        try:
-            os.nice(-15) 
-        except:
-            pass
-
-        # 1. 发送开始信号
+        """带有深度诊断功能的读取函数"""
+        # 1. 信号初始化
         GPIO.setup(self.pin, GPIO.OUT)
         GPIO.output(self.pin, GPIO.LOW)
-        time.sleep(0.02) # 必须保证至少 18ms
+        time.sleep(0.02)
         GPIO.output(self.pin, GPIO.HIGH)
         GPIO.setup(self.pin, GPIO.IN)
 
         # 2. 等待响应
-        unchanged_count = 0
+        count = 0
         while GPIO.input(self.pin) == GPIO.HIGH:
-            unchanged_count += 1
-            if unchanged_count > 5000: return {"status": "error", "error": "timeout_low"}
-        
-        unchanged_count = 0
-        while GPIO.input(self.pin) == GPIO.LOW:
-            unchanged_count += 1
-            if unchanged_count > 5000: return {"status": "error", "error": "timeout_high"}
+            count += 1
+            if count > 10000: return {"status": "error", "error": "No Response"}
 
-        # 3. 接收 40 位数据
-        data = []
+        while GPIO.input(self.pin) == GPIO.LOW: continue
+        while GPIO.input(self.pin) == GPIO.HIGH: continue
+
+        # 3. 核心：抓取原始计数值
+        raw_counts = []
         for j in range(40):
-            unchanged_count = 0
-            while GPIO.input(self.pin) == GPIO.LOW:
-                continue
+            while GPIO.input(self.pin) == GPIO.LOW: continue
+            k = 0
             while GPIO.input(self.pin) == GPIO.HIGH:
-                unchanged_count += 1
-                if unchanged_count > 1000: break
-            
-          
-            if unchanged_count < 8: 
-                data.append(0)
-            else:
-                data.append(1)
+                k += 1
+                if k > 2000: break
+            raw_counts.append(k)
 
-        # 恢复优先级
-        try:
-            os.nice(0)
-        except:
-            pass
+        # --- 诊断输出：把这 40 个数打印出来 ---
+        print(f"🔍 [Debug] 原始计数值序列: {raw_counts}")
 
-        if len(data) < 40:
-            return {"status": "error", "error": "incomplete_data"}
-
-        # 4. 数据解析
-        m = np.logspace(7, 0, 8, base=2, dtype=int)
-        data_array = np.array(data)
+        # 4. 尝试解析 (暂时用较松的阈值 10)
+        data = [1 if x > 10 else 0 for x in raw_counts]
         
+        m = np.logspace(7, 0, 8, base=2, dtype=int)
         try:
-            h_int = m.dot(data_array[0:8])
-            h_dec = m.dot(data_array[8:16])
-            t_int = m.dot(data_array[16:24])
-            t_dec = m.dot(data_array[24:32])
-            check = m.dot(data_array[32:40])
+            h_int = m.dot(data[0:8])
+            h_dec = m.dot(data[8:16])
+            t_int = m.dot(data[16:24])
+            t_dec = m.dot(data[24:32])
+            check = m.dot(data[32:40])
 
             if check == (h_int + h_dec + t_int + t_dec) & 0xFF:
-                return {
-                    "humidity": float(f"{h_int}.{h_dec}"),
-                    "temperature": float(f"{t_int}.{t_dec}"),
-                    "status": "success"
-                }
+                return {"humidity": h_int, "temperature": t_int, "status": "success"}
             else:
-                return {"status": "error", "error": "checksum_failed"}
+                return {"status": "error", "error": "Checksum Failed"}
         except:
-            return {"status": "error", "error": "parse_error"}
+            return {"status": "error", "error": "Parse Error"}
