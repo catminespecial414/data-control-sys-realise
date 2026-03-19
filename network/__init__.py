@@ -22,19 +22,19 @@ lock = threading.Lock()
 def capture_worker():
     # 强制等待 2 秒，让硬件完成上电和曝光初始化
     time.sleep(2) 
-    print("📸 [Hardware] 摄像头硬件就绪")
+    print(" [Hardware] 摄像头硬件就绪")
     while True:
         success, frame = camera.read()
         if success:
             with lock:
                 state['frame'] = frame
         else:
-            print("❌ [Hardware] 读取失败，尝试重置驱动...")
+            print(" [Hardware] 读取失败，尝试重置驱动...")
             time.sleep(1)
         time.sleep(0.04) # 稍微快一点点，保持画面流畅
 
 # 启动线程前先打印
-print("🚀 [System] 正在启动摄像头采集线程...")
+print(" [System] 正在启动摄像头采集线程...")
 threading.Thread(target=capture_worker, daemon=True).start()
 
 
@@ -74,7 +74,7 @@ def gen_frames():
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
         except Exception as e:
-            print(f"⚠️ [Stream Error] {e}")
+            print(f"[Stream Error] {e}")
             
         time.sleep(0.08) # 保持约 12 帧，对树莓派最友好
 

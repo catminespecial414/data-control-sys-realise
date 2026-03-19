@@ -4,48 +4,54 @@ import numpy as np
 import time
 
 class DHT11:
-    def __init__(self, pin=17):  # 根据你给的代码，引脚是17
+    def __init__(self, pin=17):
         self.pin = pin
+        # 统一使用 BCM 编码 (GPIO 17 = Physical Pin 11)
         GPIO.setmode(GPIO.BCM)
+        GPIO.setwarnings(False)
 
     def read(self):
         """读取并返回温湿度字典"""
         # 1. 发送开始信号
         GPIO.setup(self.pin, GPIO.OUT)
+        GPIO.output(self.pin, GPIO.HIGH)
+        time.sleep(0.05)
         GPIO.output(self.pin, GPIO.LOW)
         time.sleep(0.02)
         GPIO.output(self.pin, GPIO.HIGH)
         
         GPIO.setup(self.pin, GPIO.IN)
 
-        # 2. 等待响应
+        # 2. 等待响应（增加超时保护）
         timeout = 0
         while GPIO.input(self.pin) == GPIO.LOW:
             timeout += 1
-            if timeout > 1000: return {"error": "Sensor timeout"}
-            continue
-
+            if timeout > 5000: return {"status": "error", "error": "timeout_low"}
+        
+        timeout = 0
         while GPIO.input(self.pin) == GPIO.HIGH:
-            continue
+            timeout += 1
+            if timeout > 5000: return {"status": "error", "error": "timeout_high"}
 
         # 3. 接收 40 位数据
-        j = 0
         data = []
-        while j < 40:
+        for j in range(40):
             k = 0
             while GPIO.input(self.pin) == GPIO.LOW:
                 continue
             while GPIO.input(self.pin) == GPIO.HIGH:
                 k += 1
-                if k > 100: break
+                if k > 500: break
             
-            if k < 8:
+            if k < 15: # 这里的阈值根据树莓派 4B 性能微调
                 data.append(0)
             else:
                 data.append(1)
-            j += 1
 
-        # 4. 数据解析（使用你原来的 numpy 逻辑）
+        # 4. 数据解析
+        if len(data) < 40:
+            return {"status": "error", "error": "data_incomplete"}
+
         m = np.logspace(7, 0, 8, base=2, dtype=int)
         data_array = np.array(data)
         
@@ -56,16 +62,17 @@ class DHT11:
             temperature_point = m.dot(data_array[24:32])
             check = m.dot(data_array[32:40])
 
-            if check == (humidity + humidity_point + temperature + temperature_point):
+            # 校验和检查
+            if check == (humidity + humidity_point + temperature + temperature_point) % 256:
                 return {
-                    "humidity": humidity,
-                    "temperature": temperature,
+                    "humidity": float(f"{humidity}.{humidity_point}"),
+                    "temperature": float(f"{temperature}.{temperature_point}"),
                     "status": "success"
                 }
             else:
-                return {"error": "Checksum failed", "status": "error"}
+                return {"status": "error", "error": "checksum_failed"}
         except Exception as e:
-            return {"error": str(e), "status": "error"}
+            return {"status": "error", "error": str(e)}
 
     def cleanup(self):
         GPIO.cleanup()
