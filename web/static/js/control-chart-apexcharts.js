@@ -8,7 +8,7 @@ $(function() {
     chartF();
     chartG();
     chartK();
-    chartH();
+    //chartH();
     chartJ();
     chartI();
     chartL();
@@ -892,75 +892,63 @@ function chartGG3() {
     chart.render();
 
 }
-// --- 1. 定义全局动态数据容器 ---
-var timeLabels = [];
-var ladybugData = [];
-var mantisData = [];
-var beetleData = [];
+// --- 1. 全局容器（放在函数外） ---
+var timeLabels = [], lbData = [], mtData = [], btData = [];
+window.pestChartInstance = null; // 预设为空，防止报错
 
-// --- 2. 重新定义 chartB 为动态图表 ---
+// --- 2. 重新定义 chartB ---
 function chartB() {
     var options = {
         chart: { 
             height: 350, 
             type: "area", 
             fontFamily: 'Poppins, sans-serif',
-            animations: { enabled: true, easing: 'linear', dynamicAnimation: { speed: 1000 } },
             toolbar: { show: false }
         },
-        // 初始化时数据为空
         series: [
             { name: "瓢虫类", data: [] }, 
             { name: "螳螂类", data: [] },
             { name: "甲虫类", data: [] }
         ],
-        xaxis: { 
-            categories: [],
-            title: { text: '采集时间' },
-            labels: { style: { colors: '#10163a' } }
-        },
+        xaxis: { categories: [], labels: { style: { colors: '#10163a' } } },
         stroke: { curve: 'smooth', width: 3 },
-        colors: ['#00E396', '#FEB019', '#FF4560'], // 绿、橙、红
-        dataLabels: { enabled: false }
+        colors: ['#00E396', '#FEB019', '#FF4560']
     };
 
-    // 将 chartB 实例挂载到 window 对象，方便外部 setInterval 访问
-    window.pestChartInstance = new ApexCharts(document.querySelector("#chartB"), options);
-    window.pestChartInstance.render();
+    var domElement = document.querySelector("#chartB");
+    if (domElement) {
+        window.pestChartInstance = new ApexCharts(domElement, options);
+        window.pestChartInstance.render();
+    }
 }
 
-// --- 3. 核心：每 5 秒联网抓取并更新 ---
+// --- 3. 安全的数据更新逻辑 ---
 setInterval(function() {
+    // 只有当后端 server.py 跑起来且 chartB 渲染成功后才执行
+    if (!window.pestChartInstance) return; 
+
     fetch("/chart")
         .then(res => res.json())
         .then(data => {
             var now = new Date().toLocaleTimeString();
-            
-            // 压入新数据
             timeLabels.push(now);
-            ladybugData.push(data.ladybug || 0);
-            mantisData.push(data.mantis || 0);
-            beetleData.push(data.beetle || 0);
+            lbData.push(data.ladybug || 0);
+            mtData.push(data.mantis || 0);
+            btData.push(data.beetle || 0);
 
-            // 保持长度，防止图表太挤
             if (timeLabels.length > 15) {
-                timeLabels.shift();
-                ladybugData.shift();
-                mantisData.shift();
-                beetleData.shift();
+                timeLabels.shift(); lbData.shift(); mtData.shift(); btData.shift();
             }
 
-            // 执行更新
-            if (window.pestChartInstance) {
-                window.pestChartInstance.updateOptions({
-                    xaxis: { categories: timeLabels }
-                });
-                window.pestChartInstance.updateSeries([
-                    { name: "瓢虫类", data: ladybugData },
-                    { name: "螳螂类", data: mantisData },
-                    { name: "甲虫类", data: beetleData }
-                ]);
-            }
+            // 使用安全更新
+            window.pestChartInstance.updateOptions({
+                xaxis: { categories: timeLabels },
+                series: [
+                    { name: "瓢虫类", data: lbData },
+                    { name: "螳螂类", data: mtData },
+                    { name: "甲虫类", data: btData }
+                ]
+            }, false, true); // 这里的参数能防止动画导致的 filter 报错
         })
-        .catch(err => console.error("害虫数据拉取失败:", err));
+        .catch(err => console.log("等待后端响应..."));
 }, 5000);
