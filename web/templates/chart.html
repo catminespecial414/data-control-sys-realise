@@ -449,9 +449,18 @@ pestChart.render();
             ])
 
             // 更新害虫图
+<<<<<<< HEAD
             pestChart.updateOptions({ 
         xaxis: { categories: timeData } 
     });
+=======
+            pestChart.updateOptions({ xaxis: { categories: timeData } })
+            pestChart.updateSeries([
+                { name: "ladybug", data: aphidData },
+                { name: "mantis", data: armywormData },
+                { name: "Beetle", data: beetleData }
+            ])
+>>>>>>> 9ad84e5ea04b6c7b2efb68b441c01ceb5a214be5
 
     pestChart.updateSeries([
         { name: "瓢虫类", data: ladybugData }, // 对应你 server.py 的 ladybug
