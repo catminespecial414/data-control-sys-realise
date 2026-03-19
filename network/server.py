@@ -49,13 +49,11 @@ def execute_analysis_and_save():
         except Exception as e:
             print(f" [AI Error] {e}")
 
-    # 3. 写入数据库 (注意对应你数据库表的字段名)
     try:
-        # 这里建议根据你的数据库字段顺序，把对应数值传进去
         insert_env_data(t, h, s, l, p, beetle_count, ladybug_count, mantis_count)
-        print(f"💾 [Database] 数据已保存")
+        print(f" [Database] 数据已保存")
     except Exception as e:
-        print(f"❌ [Database Error] {e}")
+        print(f" [Database Error] {e}")
 
 def auto_recognition_task():
     print("[System] 后台 AI 任务线程已启动...")
@@ -67,7 +65,6 @@ def auto_recognition_task():
 if not any(t.name == "AI_Task" for t in threading.enumerate()):
     threading.Thread(target=auto_recognition_task, name="AI_Task", daemon=True).start()
 
-# [核心] 数据接口 API (注意：这里千万不要再写 /chart_page 或 /dashboard)
 @app.route('/chart')
 def chart_data_api():
     try:
