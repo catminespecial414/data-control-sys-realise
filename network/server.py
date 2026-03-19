@@ -12,47 +12,50 @@ from . import app, lock, state
 ai_engine = Predict()
 
 def execute_analysis_and_save():
-    """环境模拟 + AI 识别 + 数据库写入"""
     # 1. 模拟环境数据
     t, h, s = round(random.uniform(20, 30), 1), round(random.uniform(40, 70), 1), round(random.uniform(20, 40), 1)
     l, p = random.randint(300, 800), 7.0
 
-    # 2. AI 识别逻辑
- # 2. 获取画面并执行 AI
-    aphid, armyworm, beetle = 0, 0, 0
+# 2. 执行 AI 逻辑
+    beetle_count, ladybug_count, mantis_count = 0, 0, 0
     current_img = None
     with lock:
         if state.get('frame') is not None:
             current_img = state['frame'].copy()
-    
+
     if current_img is not None:
         try:
-            # --- 关键修改：打印原始结果 ---
             res = ai_engine.analyze(current_img)
-            
-            print(f"🔍 [AI Raw Data] 模型返回的全量标签: {res}") # <--- 新增这一行
-            
-            if isinstance(res, list):
-                # 统计逻辑保持不变
-                aphid = res.count("蚜虫")
-                armyworm = res.count("粘虫")
-                beetle = res.count("瓢虫") + res.count("天牛") + res.count("甲虫")
-                
-                # 如果返回了东西但不在你的统计范围内，打印提醒
-                unknown_pests = [item for item in res if item not in ["蚜虫", "粘虫", "瓢虫", "天牛", "甲虫"]]
-                if unknown_pests:
-                    print(f"⚠️ [Unknown] 识别到了未归类标签: {unknown_pests}")
-            
-            print(f"✅ [AI] 统计完成: 蚜虫:{aphid}, 粘虫:{armyworm}, 甲虫:{beetle}")
-        except Exception as e:
-            print(f"⚠️ [AI Error] 识别过程异常: {e}")
+            print(f" [AI Raw] 原始结果: {res}") 
 
-    # 3. 写入数据库 (确保你的 database/connect.py 里 insert_env_data 内部有 conn 定义)
+            if isinstance(res, list):
+                for item in res:
+                    # 1. 甲虫类 (包含天牛、金龟子、锹甲等)
+                    if item in ["甲虫", "天牛", "金龟子", "锹甲", "象鼻虫"]:
+                        beetle_count += 1
+                    
+                    # 2. 瓢虫类 (包含各种瓢虫)
+                    elif item in ["瓢虫", "七星瓢虫", "异色瓢虫"]:
+                        ladybug_count += 1
+                    
+                    # 3. 螳螂类 (包含各种螳螂)
+                    elif item in ["螳螂", "宽腹螳螂", "中华大刀螳"]:
+                        mantis_count += 1
+                    
+                    else:
+                        print(f"ℹ [Other] 发现其他生物: {item}")
+
+            print(f" [Result] 分类统计 -> 甲虫:{beetle_count}, 瓢虫:{ladybug_count}, 螳螂:{mantis_count}")
+        except Exception as e:
+            print(f" [AI Error] {e}")
+
+    # 3. 写入数据库 (注意对应你数据库表的字段名)
     try:
-        insert_env_data(t, h, s, l, p, aphid, armyworm, beetle)
-        print(f" [Database] 数据保存成功: T:{t} H:{h}")
+        # 这里建议根据你的数据库字段顺序，把对应数值传进去
+        insert_env_data(t, h, s, l, p, beetle_count, ladybug_count, mantis_count)
+        print(f"💾 [Database] 数据已保存")
     except Exception as e:
-        print(f" [Database Error] {e}")
+        print(f"❌ [Database Error] {e}")
 
 def auto_recognition_task():
     print("[System] 后台 AI 任务线程已启动...")
