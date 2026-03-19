@@ -6,8 +6,7 @@ from flask import jsonify
 from ai.predict import Predict
 from database.connect import insert_env_data, select_env_data
 
-# ⚠️ 注意：确保这里的导入顺序在 __init__.py 中是被放在 app 定义之后的
-from . import app, lock, state 
+
 
 # 初始化引擎
 ai_engine = Predict()
