@@ -11,27 +11,30 @@ camera = cv2.VideoCapture(0)
 camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-camera.set(cv2.CAP_PROP_BUFFERSIZE, 1) #
+camera.set(cv2.CAP_PROP_BUFFERSIZE, 1) 
 
-global_frame = None
-lock = threading.Lock()
-
-# 使用字典来存储，确保跨模块引用时地址不变
 state = {
     'frame': None
 }
 
+lock = threading.Lock()
+
 def capture_worker():
-    global state
+    # 强制等待 2 秒，让硬件完成上电和曝光初始化
+    time.sleep(2) 
+    print("📸 [Hardware] 摄像头硬件就绪")
     while True:
         success, frame = camera.read()
         if success:
             with lock:
-                state['frame'] = frame.copy() # 更新字典里的值
+                state['frame'] = frame
         else:
-            time.sleep(0.2)
-        time.sleep(0.01)
+            print("❌ [Hardware] 读取失败，尝试重置驱动...")
+            time.sleep(1)
+        time.sleep(0.04) # 稍微快一点点，保持画面流畅
 
+# 启动线程前先打印
+print("🚀 [System] 正在启动摄像头采集线程...")
 threading.Thread(target=capture_worker, daemon=True).start()
 
 
@@ -57,18 +60,23 @@ def login():
 
 def gen_frames():
     while True:
-        time.sleep(0.1) 
-        
         with lock:
             img = state.get('frame')
-            
+        
         if img is None:
+            # 如果没画面，千万不要报错，直接多睡一会
+            time.sleep(0.5)
             continue
-        ret, buffer = cv2.imencode('.jpg', img)
-        if ret:
-            frame_bytes = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+            
+        try:
+            ret, buffer = cv2.imencode('.jpg', img)
+            if ret:
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+        except Exception as e:
+            print(f"⚠️ [Stream Error] {e}")
+            
+        time.sleep(0.08) # 保持约 12 帧，对树莓派最友好
 
 @app.route('/video_feed')
 def video_feed():
