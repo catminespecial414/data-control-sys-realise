@@ -13,18 +13,17 @@ sensor_manager = SensorManager()
 ai_engine = Predict()
 
 def auto_recognition_task():
-    """后台定时任务：每 10 秒自动识别一次并存入数据库"""
-    print("⏲️ [System] 后台定时识别任务已开启...")
+    print("⏲️ [Debug] AI 后台任务已进入循环...") # 添加此行
     while True:
         try:
-            # 只有当摄像头线程已经抓取到画面时才进行识别
             if global_frame is not None:
                 execute_analysis_and_save()
+            else:
+                # 如果一直打印这个，说明摄像头画面没传过来
+                print("⚠️ [Debug] global_frame 还是 None，AI 无法工作") 
         except Exception as e:
             print(f"⚠️ [Task Error] {e}")
-        # 建议设置在 10-60 秒之间，平衡数据实时性与 API 消耗
-        time.sleep(10) 
-
+        time.sleep(10)
 def execute_analysis_and_save():
     """读取传感器 -> AI 识别图片 -> 写入数据库"""
     # 1. 采集环境数据
