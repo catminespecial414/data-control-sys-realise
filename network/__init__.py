@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import time
 import cv2
+import os
 from flask import Flask, render_template, session, Response, request, redirect, url_for
 from ai.predict import Predict
 from database.connect import select_user, select_device, alter_user
@@ -10,13 +11,16 @@ app = Flask(__name__, template_folder="../web/templates", static_folder="../web/
 app.secret_key = '6666'
 username = 'admin'
 
-# --- 摄像头硬核初始化：彻底解决 VIDIOC_QBUF 报错 ---
-camera = cv2.VideoCapture(0, cv2.CAP_V4L2)
-camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG')) # 关键：压缩格式
+# --- 摄像头兼容性初始化 ---
+# 解决 TypeError: VideoCapture() takes at most 1 argument
+camera = cv2.VideoCapture(0) 
+
+# 设置硬件参数（针对树莓派优化，防止 VIDIOC_QBUF 报错）
+camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG')) # 强制压缩格式
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-camera.set(cv2.CAP_PROP_BUFFERSIZE, 1) # 关键：缓冲区设为1，防止排队报错
-camera.set(cv2.CAP_PROP_FPS, 20)      # 限制帧率，减轻硬件负担
+camera.set(cv2.CAP_PROP_BUFFERSIZE, 1) # 核心：限制缓冲区为1，解决卡顿和报错
+camera.set(cv2.CAP_PROP_FPS, 20)      # 限制帧率
 
 # 初始化 AI 引擎
 pd = Predict()
@@ -45,14 +49,14 @@ def gen_frames():
     while True:
         success, frame = camera.read()
         if not success:
-            time.sleep(0.1) # 读取失败稍作等待
+            time.sleep(0.1) 
             continue
 
-        # 每 3 秒执行一次 AI 识别，共享当前帧
+        # 每 3 秒执行一次 AI 识别
         now = time.time()
         if now - last_ai_time > 3:
             try:
-                pd.analyze(frame) # 传入当前帧
+                pd.analyze(frame) # 传入当前帧给 AI
                 last_ai_time = now
                 print("🧠 [AI] 实时分析已触发...")
             except Exception as e:
@@ -77,4 +81,5 @@ def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
 
+# 导入业务逻辑
 from . import server
