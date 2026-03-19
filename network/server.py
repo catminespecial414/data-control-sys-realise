@@ -6,62 +6,76 @@ from flask import jsonify
 from sensors import SensorManager
 from ai.predict import Predict
 from database.connect import insert_env_data, select_env_data
-from . import app, global_frame, lock
+# 导入共享的 state 字典、lock 和 app
+from . import app, lock, state 
 
 # 初始化传感器和 AI 引擎
 sensor_manager = SensorManager()
 ai_engine = Predict()
 
-def auto_recognition_task():
-    print("⏲️ [Debug] AI 后台任务已进入循环...") # 添加此行
-    while True:
-        try:
-            if global_frame is not None:
-                execute_analysis_and_save()
-            else:
-                # 如果一直打印这个，说明摄像头画面没传过来
-                print("⚠️ [Debug] global_frame 还是 None，AI 无法工作") 
-        except Exception as e:
-            print(f"⚠️ [Task Error] {e}")
-        time.sleep(10)
 def execute_analysis_and_save():
-    """读取传感器 -> AI 识别图片 -> 写入数据库"""
+    """读取传感器 -> 从共享字典获取图片 -> AI 识别 -> 写入数据库"""
+    
     # 1. 采集环境数据
     sensor_data = sensor_manager.get_all_data()
     t = sensor_data.get('temperature', 0)
     h = sensor_data.get('humidity', 0)
-    # 模拟其他暂无硬件的传感器数据
+    # 模拟其他传感器数据
     s, l, p = round(random.uniform(30, 70), 2), random.randint(200, 800), round(random.uniform(5.5, 7.5), 2)
 
-    # 2. 从内存锁中拷贝当前画面
+    # 2. 从共享字典 state 中安全拷贝当前画面
     current_img = None
     with lock:
-        if global_frame is not None:
-            current_img = global_frame.copy()
+        if state['frame'] is not None:
+            current_img = state['frame'].copy()
+            print("📸 [AI] 成功获取共享画面，准备识别...")
+        else:
+            print("⚠️ [AI] 字典中的 frame 依然为空，无法识别")
+            return
 
-    # 3. AI 害虫识别
+    # 3. AI 害虫识别逻辑
     aphid, armyworm, beetle = 0, 0, 0
-    if current_img is not None:
+    try:
+        # 执行推理
         res = ai_engine.analyze(current_img)
-        # 统计识别结果中的害虫数量
+        # 统计识别结果中的害虫数量（需确保 Predict.analyze 返回的是包含中文类名的列表）
         aphid = res.count("蚜虫")
         armyworm = res.count("粘虫")
         beetle = res.count("瓢虫") + res.count("天牛") + res.count("甲虫")
         print(f"📊 [Auto AI] 识别成功：蚜虫:{aphid}, 粘虫:{armyworm}, 甲虫:{beetle}")
+    except Exception as e:
+        print(f"❌ [AI Error] 识别过程出错: {e}")
     
     # 4. 存入数据库
     insert_env_data(t, h, s, l, p, aphid, armyworm, beetle)
 
+def auto_recognition_task():
+    """后台定时任务：每 10 秒尝试运行一次 AI 识别"""
+    print("⏲️ [System] AI 后台任务已进入循环...")
+    while True:
+        try:
+            # 检查共享字典中的画面是否存在
+            if state['frame'] is not None:
+                execute_analysis_and_save()
+            else:
+                print("⚠️ [Debug] state['frame'] 还是 None，摄像头可能未准备好") 
+        except Exception as e:
+            print(f"⚠️ [Task Error] {e}")
+        
+        # 每 10 秒执行一次，防止树莓派 CPU 满载
+        time.sleep(10)
 
+# 启动后台守护线程
 daemon_thread = threading.Thread(target=auto_recognition_task, daemon=True)
 daemon_thread.start()
 
 @app.route("/chart")
 def chart_data_api():
-    """这是专门给 chart.html 里的 JS 脚本提供数据的接口"""
-   
+    """专门为 chart.html 提供的 API 接口"""
+    # 从数据库获取最新的一条记录
     row = select_env_data()
     
+    # 返回与前端 JS 匹配的 JSON 格式
     return jsonify({
         "temperature": float(row[0]) if row[0] else 0,
         "humidity": float(row[1]) if row[1] else 0,

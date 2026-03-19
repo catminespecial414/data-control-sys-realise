@@ -16,13 +16,18 @@ camera.set(cv2.CAP_PROP_BUFFERSIZE, 1) #
 global_frame = None
 lock = threading.Lock()
 
+# 使用字典来存储，确保跨模块引用时地址不变
+state = {
+    'frame': None
+}
+
 def capture_worker():
-    global global_frame
+    global state
     while True:
         success, frame = camera.read()
         if success:
             with lock:
-                global_frame = frame.copy()
+                state['frame'] = frame.copy() # 更新字典里的值
         else:
             time.sleep(0.2)
         time.sleep(0.01)
@@ -54,8 +59,8 @@ def gen_frames():
     """视频流推流"""
     while True:
         with lock:
-            if global_frame is None: continue
-            ret, buffer = cv2.imencode('.jpg', global_frame)
+            if state['frame'] is None: continue
+            ret, buffer = cv2.imencode('.jpg', state['frame'])
         if ret:
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
