@@ -18,7 +18,6 @@ global_frame = None
 lock = threading.Lock()
 
 def capture_worker():
-    """全系统唯一的摄像头读取者"""
     global global_frame
     print("🚀 [System] 硬件采集线程启动...")
     while True:
@@ -30,22 +29,10 @@ def capture_worker():
             time.sleep(0.2)
         time.sleep(0.01)
 
-# 启动采集线程
 t = threading.Thread(target=capture_worker, daemon=True)
 t.start()
 
-# --- 【核心修复】强制预热逻辑 ---
-print("⏳ [System] 正在等待摄像头画面预热...")
-max_tries = 20
-while global_frame is None and max_tries > 0:
-    time.sleep(0.5)
-    max_tries -= 1
-    print(f"   ...正在重试硬件握手 ({20-max_tries}/20)")
-
-if global_frame is not None:
-    print("✅ [System] 硬件就绪，画面已同步！")
-else:
-    print("❌ [System] 硬件启动超时，请检查摄像头连接。")
+# --- 路由部分 ---
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -58,6 +45,12 @@ def login():
 def index():
     if 'user' not in session: return redirect('/login')
     return render_template("index.html", username='admin')
+
+@app.route("/chart_page")
+def chart_page():
+    """这是返回图表 HTML 页面的路由"""
+    if 'user' not in session: return redirect('/login')
+    return render_template("chart.html", username='admin')
 
 def gen_frames():
     while True:
@@ -73,4 +66,10 @@ def gen_frames():
 def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+@app.route("/logout")
+def logout():
+    session.pop('user', None)
+    return redirect(url_for('login'))
+
+# 导入业务接口
 from . import server
