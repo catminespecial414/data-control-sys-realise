@@ -2,77 +2,84 @@
 import RPi.GPIO as GPIO
 import numpy as np
 import time
+import os
 
 class DHT11:
     def __init__(self, pin=17):
         self.pin = pin
-        # 统一使用 BCM 编码 (GPIO 17 = Physical Pin 11)
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
 
     def read(self):
-        """读取并返回温湿度字典"""
+        """读取并返回温湿度字典 (针对高负载环境优化)"""
+        # 尝试提升进程优先级（需要 sudo）
+        try:
+            os.nice(-15) 
+        except:
+            pass
+
         # 1. 发送开始信号
         GPIO.setup(self.pin, GPIO.OUT)
-        GPIO.output(self.pin, GPIO.HIGH)
-        time.sleep(0.05)
         GPIO.output(self.pin, GPIO.LOW)
-        time.sleep(0.02)
+        time.sleep(0.02) # 必须保证至少 18ms
         GPIO.output(self.pin, GPIO.HIGH)
-        
         GPIO.setup(self.pin, GPIO.IN)
 
-        # 2. 等待响应（增加超时保护）
-        timeout = 0
-        while GPIO.input(self.pin) == GPIO.LOW:
-            timeout += 1
-            if timeout > 5000: return {"status": "error", "error": "timeout_low"}
-        
-        timeout = 0
+        # 2. 等待响应
+        unchanged_count = 0
         while GPIO.input(self.pin) == GPIO.HIGH:
-            timeout += 1
-            if timeout > 5000: return {"status": "error", "error": "timeout_high"}
+            unchanged_count += 1
+            if unchanged_count > 5000: return {"status": "error", "error": "timeout_low"}
+        
+        unchanged_count = 0
+        while GPIO.input(self.pin) == GPIO.LOW:
+            unchanged_count += 1
+            if unchanged_count > 5000: return {"status": "error", "error": "timeout_high"}
 
         # 3. 接收 40 位数据
         data = []
         for j in range(40):
-            k = 0
+            unchanged_count = 0
             while GPIO.input(self.pin) == GPIO.LOW:
                 continue
             while GPIO.input(self.pin) == GPIO.HIGH:
-                k += 1
-                if k > 500: break
+                unchanged_count += 1
+                if unchanged_count > 1000: break
             
-            if k < 15: # 这里的阈值根据树莓派 4B 性能微调
+            # 这里的 12 是基于你测试脚本“计数: 8”做出的适配
+            # 如果依然 Checksum Failed，可以尝试将 12 改为 10 或 14
+            if unchanged_count < 12: 
                 data.append(0)
             else:
                 data.append(1)
 
-        # 4. 数据解析
-        if len(data) < 40:
-            return {"status": "error", "error": "data_incomplete"}
+        # 恢复优先级
+        try:
+            os.nice(0)
+        except:
+            pass
 
+        if len(data) < 40:
+            return {"status": "error", "error": "incomplete_data"}
+
+        # 4. 数据解析
         m = np.logspace(7, 0, 8, base=2, dtype=int)
         data_array = np.array(data)
         
         try:
-            humidity = m.dot(data_array[0:8])
-            humidity_point = m.dot(data_array[8:16])
-            temperature = m.dot(data_array[16:24])
-            temperature_point = m.dot(data_array[24:32])
+            h_int = m.dot(data_array[0:8])
+            h_dec = m.dot(data_array[8:16])
+            t_int = m.dot(data_array[16:24])
+            t_dec = m.dot(data_array[24:32])
             check = m.dot(data_array[32:40])
 
-            # 校验和检查
-            if check == (humidity + humidity_point + temperature + temperature_point) % 256:
+            if check == (h_int + h_dec + t_int + t_dec) & 0xFF:
                 return {
-                    "humidity": float(f"{humidity}.{humidity_point}"),
-                    "temperature": float(f"{temperature}.{temperature_point}"),
+                    "humidity": float(f"{h_int}.{h_dec}"),
+                    "temperature": float(f"{t_int}.{t_dec}"),
                     "status": "success"
                 }
             else:
                 return {"status": "error", "error": "checksum_failed"}
-        except Exception as e:
-            return {"status": "error", "error": str(e)}
-
-    def cleanup(self):
-        GPIO.cleanup()
+        except:
+            return {"status": "error", "error": "parse_error"}
