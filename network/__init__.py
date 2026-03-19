@@ -1,98 +1,99 @@
 # -*- coding: utf-8 -*-
 import time
-import random
+import cv2
 import threading
-from flask import jsonify
-from ai.predict import Predict
-from database.connect import insert_env_data, select_env_data
+from flask import Flask, render_template, session, Response, request, redirect, url_for
 
+# ==========================================================
+# 1. 核心定义：必须在所有路由 (@app.route) 之前
+# ==========================================================
+app = Flask(__name__, template_folder="../web/templates", static_folder="../web/static")
+app.secret_key = '6666'
 
+# 共享状态字典和线程锁，供 server.py 调用
+state = {
+    'frame': None
+}
+lock = threading.Lock()
 
-# 初始化引擎
-ai_engine = Predict()
+# ==========================================================
+# 2. 硬件初始化：摄像头采集线程
+# ==========================================================
+camera = cv2.VideoCapture(0)
+camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
-def execute_analysis_and_save():
-    """读取模拟数据 + AI识别 -> 存入数据库"""
-    
-    # 1. 模拟环境数据 (确保数据类型为数值，方便数据库写入)
-    t = round(random.uniform(20.0, 30.0), 1)
-    h = round(random.uniform(40.0, 70.0), 1)
-    s = round(random.uniform(20.0, 40.0), 1)      
-    l = random.randint(300, 800)
-    p = 7.0
-
-    # 2. 获取画面并执行 AI
-    aphid, armyworm, beetle = 0, 0, 0
-    current_img = None
-    
-    with lock:
-        if state.get('frame') is not None:
-            current_img = state['frame'].copy()
-    
-    if current_img is not None:
-        try:
-            res = ai_engine.analyze(current_img)
-            # 增加类型检查，防止 res 不是列表导致 count 崩溃
-            if isinstance(res, list):
-                aphid = res.count("蚜虫")
-                armyworm = res.count("粘虫")
-                # 合并计算甲虫类
-                beetle = res.count("瓢虫") + res.count("天牛") + res.count("甲虫")
-            print(f"✅ [AI] 识别完成，害虫总数: {aphid + armyworm + beetle}")
-        except Exception as e:
-            print(f"⚠️ [AI Error] 识别过程异常: {e}")
-    else:
-        print("ℹ️ [System] 摄像头画面尚未就绪，跳过本次 AI 分析")
-
-    # 3. 写入数据库 (增加强制类型转换，防止 None 值注入)
-    try:
-        insert_env_data(
-            float(t), float(h), float(s), 
-            int(l), float(p), 
-            int(aphid), int(armyworm), int(beetle)
-        )
-        print(f"💾 [Database] 数据保存成功: T:{t} H:{h} P:{aphid+armyworm+beetle}")
-    except Exception as e:
-        # 如果这里还报 con/conn 错误，请检查 database/connect.py 里的函数实现
-        print(f"❌ [Database Error] 无法存入数据: {e}")
-
-def auto_recognition_task():
-    """后台任务循环"""
-    print("[System] 后台 AI 任务线程已启动...")
-    # 给系统启动留一点缓冲时间
-    time.sleep(5) 
+def capture_worker():
+    """后台摄像头采集函数"""
+    time.sleep(2)  # 给硬件曝光初始化时间
+    print("📸 [Hardware] 摄像头硬件就绪")
     while True:
-        try:
-            execute_analysis_and_save()
-        except Exception as e:
-            print(f"⚠️ [Loop Error] 任务执行异常: {e}")
-        time.sleep(15)
+        success, frame = camera.read()
+        if success:
+            with lock:
+                state['frame'] = frame
+        else:
+            print("⚠️ [Hardware] 读取失败，尝试重置驱动...")
+            time.sleep(1)
+        time.sleep(0.04) # 约 25 帧
 
-# 🚀 启动线程：确保只在主进程启动一次
-if not any(t.name == "AI_Task" for t in threading.enumerate()):
-    task_thread = threading.Thread(target=auto_recognition_task, name="AI_Task", daemon=True)
-    task_thread.start()
+print("🚀 [System] 正在启动摄像头采集线程...")
+threading.Thread(target=capture_worker, daemon=True).start()
 
-# --- 前端 API 接口 ---
+# ==========================================================
+# 3. 基础页面路由：负责 HTML 渲染
+# ==========================================================
 
-@app.route('/chart')
-def chart_data_api():
-    """图表数据接口：返回最新的环境与害虫数据"""
-    try:
-        row = select_env_data()
-        if row:
-            # 严格按照前端 layout 对应的索引返回
-            return jsonify({
-                "temperature": float(row[0]),
-                "humidity": float(row[1]),
-                "soil": float(row[2]),
-                "light": int(row[3]),
-                "ph": float(row[4]),
-                "aphid": int(row[5]),
-                "armyworm": int(row[6]),
-                "beetle": int(row[7]),
-            })
-    except Exception as e:
-        print(f"❌ [API Error] 查询数据库失败: {e}")
+@app.route('/')
+@app.route('/dashboard')
+def index():
+    """主界面"""
+    if 'user' not in session: return redirect(url_for('login'))
+    return render_template("index.html", username='admin')
+
+@app.route('/chart_page')
+def chart_page():
+    """图表详情页"""
+    if 'user' not in session: return redirect(url_for('login'))
+    return render_template("chart.html", username='admin')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """登录逻辑"""
+    if request.method == 'POST':
+        session['user'] = request.form.get('user_id')
+        return redirect(url_for('index'))
+    return render_template('login.html')
+
+def gen_frames():
+    """视频流生成器"""
+    while True:
+        with lock:
+            img = state.get('frame')
         
-    return jsonify({"status": "no_data", "msg": "等待首条数据写入..."}), 200
+        if img is None:
+            time.sleep(0.5)
+            continue
+            
+        try:
+            ret, buffer = cv2.imencode('.jpg', img)
+            if ret:
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+        except Exception as e:
+            print(f"❌ [Stream Error] {e}")
+            
+        time.sleep(0.08)
+
+@app.route('/video_feed')
+def video_feed():
+    """视频流接口"""
+    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+# ==========================================================
+# 4. 最后一步：导入后台任务模块
+# ==========================================================
+# 此时 app, lock, state 已经全部定义完成，server.py 可以安全引用它们
+from . import server
