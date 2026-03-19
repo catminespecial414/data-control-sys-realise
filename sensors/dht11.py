@@ -46,9 +46,8 @@ class DHT11:
                 unchanged_count += 1
                 if unchanged_count > 1000: break
             
-            # 这里的 12 是基于你测试脚本“计数: 8”做出的适配
-            # 如果依然 Checksum Failed，可以尝试将 12 改为 10 或 14
-            if unchanged_count < 12: 
+          
+            if unchanged_count < 8: 
                 data.append(0)
             else:
                 data.append(1)
