@@ -46,12 +46,13 @@ def index():
     if 'user' not in session: return redirect('/login')
     return render_template("index.html", username='admin')
 
-@app.route("/chart_page")
-def chart_page():
-    """这是返回图表 HTML 页面的路由"""
-    if 'user' not in session: return redirect('/login')
+@app.route("/dashboard")
+def dashboard():
+    """这是前端页面点击跳转的目标路由"""
+    if 'user' not in session: 
+        return redirect(url_for('login'))
+    # 确保你的 HTML 文件名确实是 chart.html
     return render_template("chart.html", username='admin')
-
 def gen_frames():
     while True:
         with lock:
