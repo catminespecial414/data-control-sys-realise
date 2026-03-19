@@ -2,10 +2,9 @@
 from sensors import SensorManager
 from ai.predict import Predict
 from database.connect import insert_env_data, select_env_data
-from . import app, camera  # 关键：从 __init__ 导入全局 camera
+from . import app, global_frame, lock # 导入全局帧和锁
 from flask import jsonify
 import random
-import cv2
 
 sensor_manager = SensorManager()
 ai_engine = Predict()
@@ -19,13 +18,18 @@ def write_all_data():
         light = random.randint(200, 800)
         ph = round(random.uniform(5.5, 7.5), 2)
 
-        # --- 【主动抓帧识别】 ---
-        # 即使没人看视频，我们也从 camera 抓一帧给 AI
-        success, frame = camera.read()
+        # --- 从全局缓存拿图，不碰硬件驱动 ---
+        current_img = None
+        with lock:
+            if global_frame is not None:
+                current_img = global_frame.copy()
+        
         pests_list = []
-        if success:
-            pests_list = ai_engine.analyze(frame)
+        if current_img is not None:
+            pests_list = ai_engine.analyze(current_img)
             print(f"🧠 [后台AI] 识别到: {pests_list}")
+        else:
+            print("⚠️ 警告：当前未捕获到画面，跳过识别")
         
         # 统计
         aphid_count = pests_list.count("蚜虫")
@@ -35,11 +39,7 @@ def write_all_data():
         insert_env_data(temperature, humidity, soil, light, ph, 
                         aphid_count, armyworm_count, beetle_count)
         
-        return {
-            "temperature": temperature, "humidity": humidity, "soil": soil,
-            "light": light, "ph": ph, "aphid": aphid_count,
-            "armyworm": armyworm_count, "beetle": beetle_count
-        }
+        return {"aphid": aphid_count, "beetle": beetle_count} # 简版返回
     except Exception as e:
         print(f"❌ server 写入异常: {e}")
         return {}
@@ -51,8 +51,6 @@ def chart():
     return jsonify({
         "temperature": float(row[0]) if row[0] else 0,
         "humidity": float(row[1]) if row[1] else 0,
-        "soil": float(row[2]) if row[2] else 0,
-        "light": int(row[3]) if row[3] else 0,
         "ph": float(row[4]) if row[4] else 0,
         "aphid": int(row[5]) if row[5] else 0,
         "armyworm": int(row[6]) if row[6] else 0,
