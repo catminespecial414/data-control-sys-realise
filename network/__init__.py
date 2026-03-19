@@ -47,11 +47,11 @@ def index():
     return render_template("index.html", username='admin')
 
 @app.route("/dashboard")
+@app.route("/chart_page")  # 新增这一行，兼容你日志中的 404 请求
 def dashboard():
-    """这是前端页面点击跳转的目标路由"""
+    """无论前端找 /dashboard 还是 /chart_page，都能成功进入"""
     if 'user' not in session: 
         return redirect(url_for('login'))
-    # 确保你的 HTML 文件名确实是 chart.html
     return render_template("chart.html", username='admin')
 def gen_frames():
     while True:
