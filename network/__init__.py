@@ -56,15 +56,19 @@ def login():
     return render_template('login.html')
 
 def gen_frames():
-    """视频流推流"""
     while True:
+        time.sleep(0.1) 
+        
         with lock:
-            if state['frame'] is None: continue
-            ret, buffer = cv2.imencode('.jpg', state['frame'])
+            img = state.get('frame')
+            
+        if img is None:
+            continue
+        ret, buffer = cv2.imencode('.jpg', img)
         if ret:
+            frame_bytes = buffer.tobytes()
             yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-        time.sleep(0.05)
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
 @app.route('/video_feed')
 def video_feed():

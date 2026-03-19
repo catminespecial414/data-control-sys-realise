@@ -50,22 +50,20 @@ def execute_analysis_and_save():
     insert_env_data(t, h, s, l, p, aphid, armyworm, beetle)
 
 def auto_recognition_task():
-    """后台定时任务：每 10 秒尝试运行一次 AI 识别"""
     print("⏲️ [System] AI 后台任务已进入循环...")
     while True:
         try:
-            # 检查共享字典中的画面是否存在
             if state['frame'] is not None:
+                
+                time.sleep(1) 
                 execute_analysis_and_save()
             else:
-                print("⚠️ [Debug] state['frame'] 还是 None，摄像头可能未准备好") 
+                print("⚠️ [Debug] 等待画面中...") 
         except Exception as e:
             print(f"⚠️ [Task Error] {e}")
         
-        # 每 10 秒执行一次，防止树莓派 CPU 满载
-        time.sleep(10)
+        time.sleep(15)
 
-# 启动后台守护线程
 daemon_thread = threading.Thread(target=auto_recognition_task, daemon=True)
 daemon_thread.start()
 
