@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 # network/__init__.py
 # 网络通信模块初始化
+from ai.predict import Predict
+pd = Predict()
+import time
 from flask import Flask, render_template, session, Response
 import cv2
 from flask import request, redirect, url_for
@@ -83,24 +86,31 @@ def set_user():
     return redirect(url_for('index'))
 #TODO:加载摄像头
 def gen_frames():
+    last_ai_time = 0  # 记录上次 AI 识别的时间
     while True:
         success, frame = camera.read()
-        print("read:", success)
+        # print("read:", success) # 如果觉得终端太乱，可以把这行注释掉
 
         if not success:
             continue
 
-        ret, buffer = cv2.imencode('.jpg', frame)
-        print("encode:", ret)
+        # --- 每 2-3 秒进行一次真实 AI 识别，防止 API 频率过快 ---
+        now = time.time()
+        if now - last_ai_time > 3: 
+            # 传入当前的真实画面 frame 给 AI 
+            pd.analyze(frame) 
+            last_ai_time = now
+            print("[AI] 正在分析当前画面...")
 
+        ret, buffer = cv2.imencode('.jpg', frame)
         if not ret:
             continue
 
-        frame = buffer.tobytes()
-        print("yielding frame")
+        frame_data = buffer.tobytes()
+        # print("yielding frame") # 同理，正常运行后可以注释掉
 
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_data + b'\r\n')
 
 @app.route('/video_feed')
 def video_feed():
