@@ -14,6 +14,8 @@ sensor_manager = SensorManager()
 ai_engine = Predict()
 
 def execute_analysis_and_save():
+    time.sleep(1.0) 
+    sensor_data = sensor_manager.get_all_data()
     
     # 1. 获取真实传感器数据 (现在会调用你的 DHT11 物理读取逻辑)
     sensor_data = sensor_manager.get_all_data()
