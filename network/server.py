@@ -18,6 +18,7 @@ def execute_analysis_and_save():
     l, p = random.randint(300, 800), 7.0
 
     # 2. AI 识别逻辑
+ # 2. 获取画面并执行 AI
     aphid, armyworm, beetle = 0, 0, 0
     current_img = None
     with lock:
@@ -26,20 +27,32 @@ def execute_analysis_and_save():
     
     if current_img is not None:
         try:
+            # --- 关键修改：打印原始结果 ---
             res = ai_engine.analyze(current_img)
+            
+            print(f"🔍 [AI Raw Data] 模型返回的全量标签: {res}") # <--- 新增这一行
+            
             if isinstance(res, list):
+                # 统计逻辑保持不变
                 aphid = res.count("蚜虫")
                 armyworm = res.count("粘虫")
-                beetle = res.count("瓢虫") + res.count("天牛")
-            print(f"✅ [AI] 识别成功")
-        except: pass
+                beetle = res.count("瓢虫") + res.count("天牛") + res.count("甲虫")
+                
+                # 如果返回了东西但不在你的统计范围内，打印提醒
+                unknown_pests = [item for item in res if item not in ["蚜虫", "粘虫", "瓢虫", "天牛", "甲虫"]]
+                if unknown_pests:
+                    print(f"⚠️ [Unknown] 识别到了未归类标签: {unknown_pests}")
+            
+            print(f"✅ [AI] 统计完成: 蚜虫:{aphid}, 粘虫:{armyworm}, 甲虫:{beetle}")
+        except Exception as e:
+            print(f"⚠️ [AI Error] 识别过程异常: {e}")
 
     # 3. 写入数据库 (确保你的 database/connect.py 里 insert_env_data 内部有 conn 定义)
     try:
         insert_env_data(t, h, s, l, p, aphid, armyworm, beetle)
-        print(f"💾 [Database] 数据保存成功: T:{t} H:{h}")
+        print(f" [Database] 数据保存成功: T:{t} H:{h}")
     except Exception as e:
-        print(f"❌ [Database Error] {e}")
+        print(f" [Database Error] {e}")
 
 def auto_recognition_task():
     print("[System] 后台 AI 任务线程已启动...")

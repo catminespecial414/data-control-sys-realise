@@ -31,7 +31,7 @@ def capture_worker():
             time.sleep(1)
         time.sleep(0.04)
 
-print("🚀 [System] 正在启动摄像头采集线程...")
+print(" [System] 正在启动摄像头采集线程...")
 threading.Thread(target=capture_worker, daemon=True).start()
 
 # [4] 页面跳转路由 (仅负责返回 HTML)
