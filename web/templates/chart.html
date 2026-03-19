@@ -342,9 +342,9 @@
     var lightData = []
     var phData = []
 
-    var aphidData = []
-    var armywormData = []
-    var beetleData = []
+    var ladybugData = []; // 瓢虫类数据数组
+    var mantisData = [];  // 螳螂类数据数组
+    var beetleData = []; 
 
     var timeData = []
 
@@ -374,17 +374,21 @@
     farmChart.render()
 
     // ================== 害虫图 ==================
-    var pestChart = new ApexCharts(document.querySelector("#chartB"), {
-        chart: { type: "area", height: 350 },
-        series: [
-            { name: "ladybug", data: aphidData },
-            { name: "mantis", data: armywormData },
-            { name: "Beetle", data: beetleData }
-        ],
-        xaxis: { categories: timeData },
-        stroke: { curve: 'smooth' }
-    })
-    pestChart.render()
+   var pestChart = new ApexCharts(document.querySelector("#chartB"), {
+    chart: { type: "area", height: 350 },
+    series: [
+        { name: "瓢虫类", data: [] }, // 初始化为空数组
+        { name: "螳螂类", data: [] },
+        { name: "甲虫类", data: [] }
+    ],
+    xaxis: { 
+        categories: [],
+        title: { text: '采集时间' }
+    },
+    stroke: { curve: 'smooth' },
+    colors: ['#00E396', '#FEB019', '#FF4560'] // 绿、橙、红，区分度更高
+});
+pestChart.render();
 
 
     // ================== 核心：统一更新 ==================
@@ -409,9 +413,9 @@
             phData.push(data.ph)
 
             // 害虫
-            aphidData.push(data.aphid)
-            armywormData.push(data.armyworm)
-            beetleData.push(data.beetle)
+            ladybugData.push(data.ladybug); // 注意：这里不再用 data.aphid
+            mantisData.push(data.mantis);   // 注意：这里不再用 data.armyworm
+            beetleData.push(data.beetle);
 
             // 限制长度
             if(timeData.length > 20){
@@ -424,9 +428,9 @@
                 lightData.shift()
                 phData.shift()
 
-                aphidData.shift()
-                armywormData.shift()
-                beetleData.shift()
+               ladybugData.shift();
+               mantisData.shift();
+               beetleData.shift();
             }
 
             // 更新温湿度图
@@ -445,13 +449,15 @@
             ])
 
             // 更新害虫图
-            pestChart.updateOptions({ xaxis: { categories: timeData } })
-            pestChart.updateSeries([
-                { name: "Aphid", data: aphidData },
-                { name: "Armyworm", data: armywormData },
-                { name: "Beetle", data: beetleData }
-            ])
+            pestChart.updateOptions({ 
+        xaxis: { categories: timeData } 
+    });
 
+    pestChart.updateSeries([
+        { name: "瓢虫类", data: ladybugData }, // 对应你 server.py 的 ladybug
+        { name: "螳螂类", data: mantisData },  // 对应你 server.py 的 mantis
+        { name: "甲虫类", data: beetleData }   // 对应你 server.py 的 beetle
+    ]);
         })
 <!--五秒一次-->
     }, 5000)
