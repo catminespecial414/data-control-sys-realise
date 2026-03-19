@@ -1,121 +1,80 @@
 # -*- coding: utf-8 -*-
-# network/__init__.py
-# 网络通信模块初始化
-from ai.predict import Predict
-pd = Predict()
 import time
-from flask import Flask, render_template, session, Response
 import cv2
-from flask import request, redirect, url_for
-
+from flask import Flask, render_template, session, Response, request, redirect, url_for
+from ai.predict import Predict
 from database.connect import select_user, select_device, alter_user
 
-app = Flask(
-    __name__,
-    template_folder="../web/templates",
-    static_folder="../web/static",
-)
-app.secret_key= '6666'
-global username
+# 初始化 Flask
+app = Flask(__name__, template_folder="../web/templates", static_folder="../web/static")
+app.secret_key = '6666'
 username = 'admin'
 
-camera = cv2.VideoCapture(0)
+# --- 摄像头硬核初始化：彻底解决 VIDIOC_QBUF 报错 ---
+camera = cv2.VideoCapture(0, cv2.CAP_V4L2)
+camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG')) # 关键：压缩格式
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+camera.set(cv2.CAP_PROP_BUFFERSIZE, 1) # 关键：缓冲区设为1，防止排队报错
+camera.set(cv2.CAP_PROP_FPS, 20)      # 限制帧率，减轻硬件负担
 
-#登录页
+# 初始化 AI 引擎
+pd = Predict()
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user_id = request.form.get('user_id')   # TODO
-        # TODO:需要从数据库替换该名字
+        user_id = request.form.get('user_id')
         user = select_user(user_id)
-        password = request.form.get('password') # TODO
+        password = request.form.get('password')
         session['user'] = user_id
-
-        # TODO: 查询数据库
         if user and int(user["userid"]) == int(user_id) and int(user["password"]) == int(password):
             return redirect(url_for('index'))
-        else:
-            return render_template('login.html', error="账号或密码错误")
-
+        return render_template('login.html', error="账号或密码错误")
     return render_template('login.html')
-# 首页
+
 @app.route('/')
 def index():
-    # 未登录会跳转到登录页面
-    if 'user' not in session:
-        return redirect('/login')
-    # TODO: 从数据库算农田评分
-    farm_score = 85
-
-    # TODO: 从数据库查设备状态
+    if 'user' not in session: return redirect('/login')
     devices = select_device()
+    return render_template("index.html", farm_score=85, devices=devices, username=username)
 
-    return render_template("index.html",
-                           farm_score=farm_score,
-                           devices=devices,
-                           username=username)
-
-@app.route("/dashboard")
-def dashboard():
-    return render_template('index.html')
-# 图表页
-@app.route("/chart_page")
-def chart_page():
-    return render_template("chart.html", username=username)
-
-#用户页
-@app.route("/setting")
-def setting():
-    return render_template("setting.html", username= username)
-
-@app.route("/logout")
-def logout():
-    session.pop('user')
-    return redirect(url_for('index'))
-
-@app.route("/setUser", methods=['GET','POST'])
-def set_user():
-    if request.method == 'POST':
-        user_id = request.form.get('user_id')
-        user_name = request.form.get('name')
-        user_password = request.form.get('password')
-        alter_user(user_id, user_name, user_password)
-        session['user'] = select_user(user_id)
-
-    return redirect(url_for('index'))
-#TODO:加载摄像头
 def gen_frames():
-    last_ai_time = 0  # 记录上次 AI 识别的时间
+    """视频流生成器：同时触发 AI 识别"""
+    last_ai_time = 0
     while True:
         success, frame = camera.read()
-        # print("read:", success) # 如果觉得终端太乱，可以把这行注释掉
-
         if not success:
+            time.sleep(0.1) # 读取失败稍作等待
             continue
 
-        # --- 每 2-3 秒进行一次真实 AI 识别，防止 API 频率过快 ---
+        # 每 3 秒执行一次 AI 识别，共享当前帧
         now = time.time()
-        if now - last_ai_time > 3: 
-            # 传入当前的真实画面 frame 给 AI 
-            pd.analyze(frame) 
-            last_ai_time = now
-            print("[AI] 正在分析当前画面...")
+        if now - last_ai_time > 3:
+            try:
+                pd.analyze(frame) # 传入当前帧
+                last_ai_time = now
+                print("🧠 [AI] 实时分析已触发...")
+            except Exception as e:
+                print(f"⚠️ AI 调用失败: {e}")
 
+        # 编码并推送
         ret, buffer = cv2.imencode('.jpg', frame)
-        if not ret:
-            continue
-
-        frame_data = buffer.tobytes()
-        # print("yielding frame") # 同理，正常运行后可以注释掉
-
+        if not ret: continue
+        
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_data + b'\r\n')
+               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
 
 @app.route('/video_feed')
 def video_feed():
-    return Response(gen_frames(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-# 导入 API
+@app.route("/chart_page")
+def chart_page(): return render_template("chart.html", username=username)
+
+@app.route("/logout")
+def logout():
+    session.pop('user', None)
+    return redirect(url_for('login'))
+
 from . import server
